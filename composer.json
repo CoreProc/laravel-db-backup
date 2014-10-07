@@ -5,6 +5,10 @@
         {
             "name": "Chris Bautista",
             "email": "chrisbjr@gmail.com"
+        },
+        {
+            "name": "Johannes Schickling",
+            "email": "schickling.j@gmail.com"
         }
     ],
     "require": {
