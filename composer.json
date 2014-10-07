@@ -1,0 +1,27 @@
+{
+    "name": "coreproc/laravel-db-backup",
+    "description": "",
+    "authors": [
+        {
+            "name": "Chris Bautista",
+            "email": "chrisbjr@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "require-dev": {
+        "laravel/framework": "4.1.*",
+        "orchestra/testbench": "2.1.*",
+        "satooshi/php-coveralls": "0.6.*",
+        "mockery/mockery": "dev-master",
+        "symfony/finder": "2.*",
+        "aws/aws-sdk-php-laravel": "1.*"
+    },
+    "autoload": {
+        "psr-0": {
+            "Coreproc\\LaravelDbBackup\\": "src/"
+        }
+    },
+    "minimum-stability": "stable"
+}
