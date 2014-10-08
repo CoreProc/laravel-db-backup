@@ -4,6 +4,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use AWS;
 use Config;
+use Guzzle\Http;
 
 class BackupCommand extends BaseCommand
 {
@@ -48,6 +49,13 @@ class BackupCommand extends BaseCommand
                     $this->dataRetentionS3();
                 }
             }
+
+            $databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
+            if (!empty($databaseConnectionConfig['slackToken']) && !empty($databaseConnectionConfig['slackSubDomain'])) {
+                $this->notifySlack($databaseConnectionConfig);
+            }
+
+
         } else {
             $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup failed. %s' . "\n", 'red'), $status));
         }
@@ -158,6 +166,17 @@ class BackupCommand extends BaseCommand
         }
 
         $this->info("");
+    }
+
+    private function notifySlack($databaseConfig)
+    {
+        $data['text'] = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
+
+        $content = json_encode($data);
+
+        $command = "curl -X POST --data-urlencode 'payload={$content}' 'https://{$databaseConfig['slackSubDomain']}.slack.com/services/hooks/incoming-webhook?token={$databaseConfig['slackToken']}'";
+
+        shell_exec($command);
     }
 
 }
