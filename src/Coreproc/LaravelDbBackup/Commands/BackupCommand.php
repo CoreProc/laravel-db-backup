@@ -15,11 +15,13 @@ class BackupCommand extends BaseCommand
 
     public function fire()
     {
-        $database = $this->getDatabase(Config::get('database.default', false));
+        $databaseName = Config::get('database.default', false);
 
-        if (!empty($this->option('database'))) {
-            $database = $this->getDatabase($this->input->getOption('database'));
+        if (!empty($this->input->getOption('database'))) {
+            $databaseName = $this->input->getOption('database');
         }
+
+        $database = $this->getDatabase($databaseName);
 
         $this->checkDumpFolder();
 
