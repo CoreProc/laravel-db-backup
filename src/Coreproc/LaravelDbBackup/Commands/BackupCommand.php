@@ -15,7 +15,12 @@ class BackupCommand extends BaseCommand
 
     public function fire()
     {
-        $database = $this->getDatabase($this->input->getOption('database'));
+        $database = $this->getDatabase(Config::get('database.default', false));
+
+        if (!empty($this->option('database'))) {
+            $database = $this->getDatabase($this->input->getOption('database'));
+        }
+
         $this->checkDumpFolder();
 
         if ($this->argument('filename')) {
@@ -52,11 +57,13 @@ class BackupCommand extends BaseCommand
 
             $databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
             if (!empty($databaseConnectionConfig['slackToken']) && !empty($databaseConnectionConfig['slackSubDomain'])) {
-                $this->notifySlack($databaseConnectionConfig);
+                $disableSlack = !empty($this->option('disable-slack'));
+                if (!$this->option('disable-slack')) $this->notifySlack($databaseConnectionConfig);
             }
 
 
         } else {
+            // todo
             $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup failed. %s' . "\n", 'red'), $status));
         }
     }
@@ -80,6 +87,7 @@ class BackupCommand extends BaseCommand
             array('upload-s3', 'u', InputOption::VALUE_OPTIONAL, 'Upload the dump to your S3 bucket'),
             array('path-s3', null, InputOption::VALUE_OPTIONAL, 'The folder in which to save the backup'),
             array('data-retention-s3', null, InputOption::VALUE_OPTIONAL, 'Number of days to retain backups'),
+            array('disable-slack', null, InputOption::VALUE_NONE, 'Number of days to retain backups'),
         );
     }
 
@@ -170,13 +178,17 @@ class BackupCommand extends BaseCommand
 
     private function notifySlack($databaseConfig)
     {
-        $data['text'] = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
+        $this->info('Sending slack notification..');
+        $data['text']     = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
+        $data['username'] = "Database Backup";
+        $data['icon_url'] = "https://s3-ap-northeast-1.amazonaws.com/coreproc/images/icon_database.png";
 
         $content = json_encode($data);
 
         $command = "curl -X POST --data-urlencode 'payload={$content}' 'https://{$databaseConfig['slackSubDomain']}.slack.com/services/hooks/incoming-webhook?token={$databaseConfig['slackToken']}'";
 
         shell_exec($command);
+        $this->info('Slack notification sent!');
     }
 
 }
