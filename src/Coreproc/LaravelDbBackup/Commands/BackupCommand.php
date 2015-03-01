@@ -8,189 +8,212 @@ use Guzzle\Http;
 
 class BackupCommand extends BaseCommand
 {
-    protected $name = 'db:backup';
-    protected $description = 'Backup the default database to `app/storage/dumps`';
-    protected $filePath;
-    protected $fileName;
+	protected $name = 'db:backup';
+	protected $description = 'Backup the default database to `app/storage/dumps`';
+	protected $filePath;
+	protected $fileName;
 
-    public function fire()
-    {
-        $databaseName = Config::get('database.default', false);
+	public function fire()
+	{
+		$databaseName = Config::get('database.default', false);
 
-        if (!empty($this->input->getOption('database'))) {
-            $databaseName = $this->input->getOption('database');
-        }
+		if (!empty($this->input->getOption('database'))) {
+			$databaseName = $this->input->getOption('database');
+		}
 
-        $database = $this->getDatabase($databaseName);
+		$database = $this->getDatabase($databaseName);
 
-        $this->checkDumpFolder();
+		$this->checkDumpFolder();
 
-        if ($this->argument('filename')) {
-            // Is it an absolute path?
-            if (substr($this->argument('filename'), 0, 1) == '/') {
-                $this->filePath = $this->argument('filename');
-                $this->fileName = basename($this->filePath);
-            } // It's relative path?
-            else {
-                $this->filePath = getcwd() . '/' . $this->argument('filename');
-                $this->fileName = basename($this->filePath) . '_' . time();
-            }
-        } else {
-            $this->fileName = $this->input->getOption('database') . '_' . time() . '.' . $database->getFileExtension();
-            $this->filePath = rtrim($this->getDumpsPath(), '/') . '/' . $this->fileName;
-        }
+		if ($this->argument('filename')) {
+			// Is it an absolute path?
+			if (substr($this->argument('filename'), 0, 1) == '/') {
+				$this->filePath = $this->argument('filename');
+				$this->fileName = basename($this->filePath);
+			} // It's relative path?
+			else {
+				$this->filePath = getcwd() . '/' . $this->argument('filename');
+				$this->fileName = basename($this->filePath) . '_' . time();
+			}
+		} else {
+			$this->fileName = $this->input->getOption('database') . '_' . time() . '.' . $database->getFileExtension();
+			$this->filePath = rtrim($this->getDumpsPath(), '/') . '/' . $this->fileName;
+		}
 
-        $status = $database->dump($this->filePath);
+		$status = $database->dump($this->filePath);
 
-        if ($status === true) {
-            if ($this->argument('filename')) {
-                $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. Saved to %s' . "\n", 'green'), $this->filePath));
-            } else {
-                $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. %s was saved in the dumps folder.' . "\n", 'green'), $this->fileName));
-            }
+		if ($status === true) {
 
-            if ($this->option('upload-s3')) {
-                $this->uploadS3();
-                $this->line($this->colors->getColoredString("\n" . 'Upload complete.' . "\n", 'green'));
-                if ($this->option('data-retention-s3')) {
-                    $this->dataRetentionS3();
-                }
-            }
+			// create zip archive
+			if ($this->option('archive')) {
+				$zip = new \ZipArchive();
+				$zipFileName = $this->input->getOption('database') . '_' . time() . '.zip';
+				$zipFilePath = dirname($this->filePath) . '/' . $zipFileName;
 
-            $databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
-            if (!empty($databaseConnectionConfig['slackToken']) && !empty($databaseConnectionConfig['slackSubDomain'])) {
-                $disableSlack = !empty($this->option('disable-slack'));
-                if (!$this->option('disable-slack')) $this->notifySlack($databaseConnectionConfig);
-            }
+				if ($zip->open($zipFilePath, \ZipArchive::CREATE) === true) {
+					$zip->addFile($this->filePath);
+					$zip->close();
+
+					// delete .sql files
+					unlink($this->filePath);
+
+					// change filename and filepath to zip
+					$this->filePath = $zipFilePath;
+					$this->fileName = $zipFileName;
+				}
+			}
+
+			// display success message
+			if ($this->argument('filename')) {
+				$this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. Saved to %s' . "\n", 'green'), $this->filePath));
+			} else {
+				$this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. %s was saved in the dumps folder.' . "\n", 'green'), $this->fileName));
+			}
+
+			// upload to S3
+			if ($this->option('upload-s3')) {
+				$this->uploadS3();
+				$this->line($this->colors->getColoredString("\n" . 'Upload complete.' . "\n", 'green'));
+				if ($this->option('data-retention-s3')) {
+					$this->dataRetentionS3();
+				}
+			}
+
+			$databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
+			if (!empty($databaseConnectionConfig['slackToken']) && !empty($databaseConnectionConfig['slackSubDomain'])) {
+				$disableSlack = !empty($this->option('disable-slack'));
+				if (!$this->option('disable-slack')) $this->notifySlack($databaseConnectionConfig);
+			}
 
 
-        } else {
-            // todo
-            $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup failed. %s' . "\n", 'red'), $status));
-        }
-    }
+		} else {
+			// todo
+			$this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup failed. %s' . "\n", 'red'), $status));
+		}
+	}
 
-    /**
-     * Get the console command arguments.
-     *
-     * @return array
-     */
-    protected function getArguments()
-    {
-        return array(
-            array('filename', InputArgument::OPTIONAL, 'Filename or -path for the dump.'),
-        );
-    }
+	/**
+	 * Get the console command arguments.
+	 *
+	 * @return array
+	 */
+	protected function getArguments()
+	{
+		return array(
+			array('filename', InputArgument::OPTIONAL, 'Filename or -path for the dump.'),
+		);
+	}
 
-    protected function getOptions()
-    {
-        return array(
-            array('database', null, InputOption::VALUE_REQUIRED, 'The database connection to backup'),
-            array('upload-s3', 'u', InputOption::VALUE_OPTIONAL, 'Upload the dump to your S3 bucket'),
-            array('path-s3', null, InputOption::VALUE_OPTIONAL, 'The folder in which to save the backup'),
-            array('data-retention-s3', null, InputOption::VALUE_OPTIONAL, 'Number of days to retain backups'),
-            array('disable-slack', null, InputOption::VALUE_NONE, 'Number of days to retain backups'),
-        );
-    }
+	protected function getOptions()
+	{
+		return array(
+			array('database', null, InputOption::VALUE_REQUIRED, 'The database connection to backup'),
+			array('upload-s3', 'u', InputOption::VALUE_OPTIONAL, 'Upload the dump to your S3 bucket'),
+			array('path-s3', null, InputOption::VALUE_OPTIONAL, 'The folder in which to save the backup'),
+			array('data-retention-s3', null, InputOption::VALUE_OPTIONAL, 'Number of days to retain backups'),
+			array('disable-slack', null, InputOption::VALUE_NONE, 'Number of days to retain backups'),
+			array('archive', null, InputOption::VALUE_OPTIONAL, 'Create zip archive'),
+		);
+	}
 
-    protected function checkDumpFolder()
-    {
-        $dumpsPath = $this->getDumpsPath();
+	protected function checkDumpFolder()
+	{
+		$dumpsPath = $this->getDumpsPath();
 
-        if (!is_dir($dumpsPath)) {
-            mkdir($dumpsPath);
-        }
-    }
+		if (!is_dir($dumpsPath)) {
+			mkdir($dumpsPath);
+		}
+	}
 
-    protected function uploadS3()
-    {
-        $bucket = $this->option('upload-s3');
-        $s3     = AWS::get('s3');
+	protected function uploadS3()
+	{
+		$bucket = $this->option('upload-s3');
+		$s3     = AWS::get('s3');
 
-        $s3->putObject(array(
-            'Bucket'     => $bucket,
-            'Key'        => $this->getS3DumpsPath() . '/' . $this->fileName,
-            'SourceFile' => $this->filePath,
-        ));
-    }
+		$s3->putObject(array(
+			'Bucket'     => $bucket,
+			'Key'        => $this->getS3DumpsPath() . '/' . $this->fileName,
+			'SourceFile' => $this->filePath,
+		));
+	}
 
-    protected function getS3DumpsPath()
-    {
-        if ($this->input->getOption('path-s3')) {
-            $path = $this->input->getOption('path-s3');
-        } else {
-            $path = Config::get('laravel-db-backup::s3.path', 'databases');
-        }
+	protected function getS3DumpsPath()
+	{
+		if ($this->input->getOption('path-s3')) {
+			$path = $this->input->getOption('path-s3');
+		} else {
+			$path = Config::get('laravel-db-backup::s3.path', 'databases');
+		}
 
-        return $path;
-    }
+		return $path;
+	}
 
-    private function dataRetentionS3()
-    {
-        if (!$this->option('data-retention-s3')) {
-            return;
-        }
+	private function dataRetentionS3()
+	{
+		if (!$this->option('data-retention-s3')) {
+			return;
+		}
 
-        $dataRetention = (int)$this->input->getOption('data-retention-s3');
+		$dataRetention = (int)$this->input->getOption('data-retention-s3');
 
-        if ($dataRetention <= 0) {
-            $this->error("Data retention should be a number");
-            return;
-        }
+		if ($dataRetention <= 0) {
+			$this->error("Data retention should be a number");
+			return;
+		}
 
-        $bucket = $this->option('upload-s3');
-        $s3     = AWS::get('s3');
+		$bucket = $this->option('upload-s3');
+		$s3     = AWS::get('s3');
 
-        $list = $s3->listObjects(array(
-            'Bucket' => $bucket,
-            'Marker' => $this->getS3DumpsPath(),
-        ));
+		$list = $s3->listObjects(array(
+			'Bucket' => $bucket,
+			'Marker' => $this->getS3DumpsPath(),
+		));
 
-        $timestampForRetention = strtotime('-' . $dataRetention . ' days');
-        $this->info('Retaining data where date is greater than ' . date('Y-m-d', $timestampForRetention));
+		$timestampForRetention = strtotime('-' . $dataRetention . ' days');
+		$this->info('Retaining data where date is greater than ' . date('Y-m-d', $timestampForRetention));
 
-        $contents = $list['Contents'];
+		$contents = $list['Contents'];
 
-        $deleteCount = 0;
-        foreach ($contents as $fileArray) {
-            $filePathArray = explode('/', $fileArray['Key']);
-            $filename      = $filePathArray[count($filePathArray) - 1];
+		$deleteCount = 0;
+		foreach ($contents as $fileArray) {
+			$filePathArray = explode('/', $fileArray['Key']);
+			$filename      = $filePathArray[count($filePathArray) - 1];
 
-            $filenameExplode = explode('_', $filename);
+			$filenameExplode = explode('_', $filename);
 
-            $fileTimestamp = explode('.', $filenameExplode[count($filenameExplode) - 1])[0];
+			$fileTimestamp = explode('.', $filenameExplode[count($filenameExplode) - 1])[0];
 
-            if ($timestampForRetention > $fileTimestamp) {
-                $this->info("The following file is beyond data retention and was deleted: {$fileArray['Key']}");
-                // delete
-                $s3->deleteObject(array(
-                    'Bucket' => $bucket,
-                    'Key'    => $fileArray['Key']
-                ));
-                $deleteCount++;
-            }
-        }
+			if ($timestampForRetention > $fileTimestamp) {
+				$this->info("The following file is beyond data retention and was deleted: {$fileArray['Key']}");
+				// delete
+				$s3->deleteObject(array(
+					'Bucket' => $bucket,
+					'Key'    => $fileArray['Key']
+				));
+				$deleteCount++;
+			}
+		}
 
-        if ($deleteCount > 0) {
-            $this->info($deleteCount . ' file(s) were deleted.');
-        }
+		if ($deleteCount > 0) {
+			$this->info($deleteCount . ' file(s) were deleted.');
+		}
 
-        $this->info("");
-    }
+		$this->info("");
+	}
 
-    private function notifySlack($databaseConfig)
-    {
-        $this->info('Sending slack notification..');
-        $data['text']     = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
-        $data['username'] = "Database Backup";
-        $data['icon_url'] = "https://s3-ap-northeast-1.amazonaws.com/coreproc/images/icon_database.png";
+	private function notifySlack($databaseConfig)
+	{
+		$this->info('Sending slack notification..');
+		$data['text']     = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
+		$data['username'] = "Database Backup";
+		$data['icon_url'] = "https://s3-ap-northeast-1.amazonaws.com/coreproc/images/icon_database.png";
 
-        $content = json_encode($data);
+		$content = json_encode($data);
 
-        $command = "curl -X POST --data-urlencode 'payload={$content}' 'https://{$databaseConfig['slackSubDomain']}.slack.com/services/hooks/incoming-webhook?token={$databaseConfig['slackToken']}'";
+		$command = "curl -X POST --data-urlencode 'payload={$content}' 'https://{$databaseConfig['slackSubDomain']}.slack.com/services/hooks/incoming-webhook?token={$databaseConfig['slackToken']}'";
 
-        shell_exec($command);
-        $this->info('Slack notification sent!');
-    }
+		shell_exec($command);
+		$this->info('Slack notification sent!');
+	}
 
 }
