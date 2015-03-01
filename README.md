@@ -101,6 +101,10 @@ To upload the database backup to S3, use the `--upload-s3` option:
 
 Change the value of the `--upload-s3` to the name of the bucket you want to upload to.
 
+If you want to keep only S3 copy of your backups, set `--s3-only`, which will delete local copy of backup when S3 upload is enabled.
+
+`php artisan db:backup --database=dbconnection2 --upload-s3=s3_bucket_name --s3-only=true`
+
 ### Database Retention (S3 only for now)
 
 If you want to only keep a certain number of copies of your database, you can set the `--data-retention-s3` option to the number of days you want to retain your data. Here is an example:
@@ -113,5 +117,8 @@ You can change the name of the backup file with the `--filename` option. All fil
 
 `php artisan db:backup --database=dbconnection2 --filename=test` 
 
+### Save as ZIP archive
 
+To create zip archive instead of raw .sql file, set `--archive` value.
 
+`php artisan db:backup --database=dbconnection2 --data-retention=30 --archive=true` 

@@ -77,6 +77,11 @@ class BackupCommand extends BaseCommand
                 if ($this->option('data-retention-s3')) {
                     $this->dataRetentionS3();
                 }
+
+	            // remove local archive if desired
+	            if ($this->option('s3-only')) {
+		            unlink($this->filePath);
+	            }
             }
 
             $databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
@@ -113,6 +118,7 @@ class BackupCommand extends BaseCommand
             array('data-retention-s3', null, InputOption::VALUE_OPTIONAL, 'Number of days to retain backups'),
             array('disable-slack', null, InputOption::VALUE_NONE, 'Number of days to retain backups'),
 	        array('archive', null, InputOption::VALUE_OPTIONAL, 'Create zip archive'),
+	        array('s3-only', null, InputOption::VALUE_OPTIONAL, 'Delete local archive after S3 upload'),
         );
     }
 
