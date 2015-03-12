@@ -1,7 +1,7 @@
 Laravel DB Backup
 =================
 
-Artisan command to backup your database. Built for Laravel. Originally forked from [schickling/laravel-backup](https://github.com/schickling/laravel-backup) but modified to push in more features like data retention from Amazon S3 and Slack notifications.
+Artisan command to backup your database. Built for Laravel 4.2. Originally forked from [schickling/laravel-backup](https://github.com/schickling/laravel-backup) but modified to push in more features like data retention from Amazon S3 and Slack notifications.
 
 ## Quick start
 
