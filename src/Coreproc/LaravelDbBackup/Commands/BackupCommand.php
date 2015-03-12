@@ -8,6 +8,7 @@ use Guzzle\Http;
 
 class BackupCommand extends BaseCommand
 {
+
     protected $name = 'db:backup';
     protected $description = 'Backup the default database to `app/storage/dumps`';
     protected $filePath;
@@ -17,7 +18,7 @@ class BackupCommand extends BaseCommand
     {
         $databaseName = Config::get('database.default', false);
 
-        if (!empty($this->input->getOption('database'))) {
+        if ( ! empty($this->input->getOption('database'))) {
             $databaseName = $this->input->getOption('database');
         }
 
@@ -44,33 +45,33 @@ class BackupCommand extends BaseCommand
 
         if ($status === true) {
 
-	        // create zip archive
-	        if ($this->option('archive')) {
-		        $zip = new \ZipArchive();
-		        $zipFileName = $this->input->getOption('database') . '_' . time() . '.zip';
-		        $zipFilePath = dirname($this->filePath) . '/' . $zipFileName;
+            // create zip archive
+            if ($this->option('archive')) {
+                $zip = new \ZipArchive();
+                $zipFileName = $this->input->getOption('database') . '_' . time() . '.zip';
+                $zipFilePath = dirname($this->filePath) . '/' . $zipFileName;
 
-		        if ($zip->open($zipFilePath, \ZipArchive::CREATE) === true) {
-			        $zip->addFile($this->filePath);
-			        $zip->close();
+                if ($zip->open($zipFilePath, \ZipArchive::CREATE) === true) {
+                    $zip->addFile($this->filePath);
+                    $zip->close();
 
-			        // delete .sql files
-			        unlink($this->filePath);
+                    // delete .sql files
+                    unlink($this->filePath);
 
-			        // change filename and filepath to zip
-			        $this->filePath = $zipFilePath;
-			        $this->fileName = $zipFileName;
-		        }
-	        }
+                    // change filename and filepath to zip
+                    $this->filePath = $zipFilePath;
+                    $this->fileName = $zipFileName;
+                }
+            }
 
-	        // display success message
+            // display success message
             if ($this->argument('filename')) {
                 $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. Saved to %s' . "\n", 'green'), $this->filePath));
             } else {
                 $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. %s was saved in the dumps folder.' . "\n", 'green'), $this->fileName));
             }
 
-	        // upload to s3
+            // upload to s3
             if ($this->option('upload-s3')) {
                 $this->uploadS3();
                 $this->line($this->colors->getColoredString("\n" . 'Upload complete.' . "\n", 'green'));
@@ -78,18 +79,17 @@ class BackupCommand extends BaseCommand
                     $this->dataRetentionS3();
                 }
 
-	            // remove local archive if desired
-	            if ($this->option('s3-only')) {
-		            unlink($this->filePath);
-	            }
+                // remove local archive if desired
+                if ($this->option('s3-only')) {
+                    unlink($this->filePath);
+                }
             }
 
             $databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
-            if (!empty($databaseConnectionConfig['slackToken']) && !empty($databaseConnectionConfig['slackSubDomain'])) {
-                $disableSlack = !empty($this->option('disable-slack'));
-                if (!$this->option('disable-slack')) $this->notifySlack($databaseConnectionConfig);
+            if ( ! empty($databaseConnectionConfig['slackToken']) && ! empty($databaseConnectionConfig['slackSubDomain'])) {
+                $disableSlack = ! empty($this->option('disable-slack'));
+                if ( ! $this->option('disable-slack')) $this->notifySlack($databaseConnectionConfig);
             }
-
 
         } else {
             // todo
@@ -117,8 +117,8 @@ class BackupCommand extends BaseCommand
             array('path-s3', null, InputOption::VALUE_OPTIONAL, 'The folder in which to save the backup'),
             array('data-retention-s3', null, InputOption::VALUE_OPTIONAL, 'Number of days to retain backups'),
             array('disable-slack', null, InputOption::VALUE_NONE, 'Number of days to retain backups'),
-	        array('archive', null, InputOption::VALUE_OPTIONAL, 'Create zip archive'),
-	        array('s3-only', null, InputOption::VALUE_OPTIONAL, 'Delete local archive after S3 upload'),
+            array('archive', null, InputOption::VALUE_OPTIONAL, 'Create zip archive'),
+            array('s3-only', null, InputOption::VALUE_OPTIONAL, 'Delete local archive after S3 upload'),
         );
     }
 
@@ -126,7 +126,7 @@ class BackupCommand extends BaseCommand
     {
         $dumpsPath = $this->getDumpsPath();
 
-        if (!is_dir($dumpsPath)) {
+        if ( ! is_dir($dumpsPath)) {
             mkdir($dumpsPath);
         }
     }
@@ -134,7 +134,7 @@ class BackupCommand extends BaseCommand
     protected function uploadS3()
     {
         $bucket = $this->option('upload-s3');
-        $s3     = AWS::get('s3');
+        $s3 = AWS::get('s3');
 
         $s3->putObject(array(
             'Bucket'     => $bucket,
@@ -156,11 +156,11 @@ class BackupCommand extends BaseCommand
 
     private function dataRetentionS3()
     {
-        if (!$this->option('data-retention-s3')) {
+        if ( ! $this->option('data-retention-s3')) {
             return;
         }
 
-        $dataRetention = (int)$this->input->getOption('data-retention-s3');
+        $dataRetention = (int) $this->input->getOption('data-retention-s3');
 
         if ($dataRetention <= 0) {
             $this->error("Data retention should be a number");
@@ -168,7 +168,7 @@ class BackupCommand extends BaseCommand
         }
 
         $bucket = $this->option('upload-s3');
-        $s3     = AWS::get('s3');
+        $s3 = AWS::get('s3');
 
         $list = $s3->listObjects(array(
             'Bucket' => $bucket,
@@ -183,7 +183,7 @@ class BackupCommand extends BaseCommand
         $deleteCount = 0;
         foreach ($contents as $fileArray) {
             $filePathArray = explode('/', $fileArray['Key']);
-            $filename      = $filePathArray[count($filePathArray) - 1];
+            $filename = $filePathArray[count($filePathArray) - 1];
 
             $filenameExplode = explode('_', $filename);
 
@@ -210,7 +210,7 @@ class BackupCommand extends BaseCommand
     private function notifySlack($databaseConfig)
     {
         $this->info('Sending slack notification..');
-        $data['text']     = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
+        $data['text'] = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
         $data['username'] = "Database Backup";
         $data['icon_url'] = "https://s3-ap-northeast-1.amazonaws.com/coreproc/images/icon_database.png";
 
