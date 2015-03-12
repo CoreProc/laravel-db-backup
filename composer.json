@@ -14,16 +14,18 @@
     "require": {
         "php": ">=5.4.0",
         "symfony/finder": "2.*",
+        "illuminate/support": "4.2.*",
+        "illuminate/database": "*",
         "aws/aws-sdk-php-laravel": "1.*"
     },
     "require-dev": {
-        "laravel/framework": "4.1.*",
+        "laravel/framework": "4.2.*",
         "orchestra/testbench": "2.1.*",
         "satooshi/php-coveralls": "0.6.*",
         "mockery/mockery": "dev-master"
     },
     "autoload": {
-        "psr-0": {
+        "psr-4": {
             "Coreproc\\LaravelDbBackup\\": "src/"
         }
     },
