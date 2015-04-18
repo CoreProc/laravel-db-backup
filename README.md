@@ -1,6 +1,8 @@
 Laravel DB Backup
 =================
 
+[![Join the chat at https://gitter.im/CoreProc/laravel-db-backup](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/CoreProc/laravel-db-backup?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Artisan command to backup your database. Built for Laravel 4.2. Originally forked from [schickling/laravel-backup](https://github.com/schickling/laravel-backup) but modified to push in more features like data retention from Amazon S3 and Slack notifications.
 
 ## Quick start
