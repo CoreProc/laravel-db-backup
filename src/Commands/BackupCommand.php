@@ -18,7 +18,9 @@ class BackupCommand extends BaseCommand
     {
         $databaseName = Config::get('database.default', false);
 
-        if ( ! empty($this->input->getOption('database'))) {
+	    $databaseOption = $this->input->getOption('database');
+
+        if ( ! empty($databaseOption)) {
             $databaseName = $this->input->getOption('database');
         }
 
@@ -87,7 +89,8 @@ class BackupCommand extends BaseCommand
 
             $databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
             if ( ! empty($databaseConnectionConfig['slackToken']) && ! empty($databaseConnectionConfig['slackSubDomain'])) {
-                $disableSlack = ! empty($this->option('disable-slack'));
+	            $disableSlackOption = $this->option('disable-slack');
+                $disableSlack = ! empty($disableSlackOption);
                 if ( ! $this->option('disable-slack')) $this->notifySlack($databaseConnectionConfig);
             }
 
