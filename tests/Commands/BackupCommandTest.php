@@ -33,7 +33,7 @@ class BackupCommandTest extends TestCase
     protected function getPackageProviders()
     {
         return array(
-            'Coreproc\LaravelDbBackup\BackupServiceProvider',
+            'Coreproc\LaravelDbBackup\LaravelDbBackupServiceProvider',
             'Aws\Laravel\AwsServiceProvider',
         );
     }
@@ -58,7 +58,7 @@ class BackupCommandTest extends TestCase
 
         $this->tester->execute(array());
 
-        $this->assertRegExp("/^(\\033\[[0-9;]*m)*(\\n)*Database backup was successful. [0-9]{14}.sql was saved in the dumps folder.(\\n)*(\\033\[0m)*$/", $this->tester->getDisplay());
+        $this->assertRegExp("/^(\\033\[[0-9;]*m)*(\\n)*Database backup was successful. [A-Za-z0-9_]{10,}.sql was saved in the dumps folder.(\\n)*(\\033\[0m)*$/", $this->tester->getDisplay());
     }
 
     public function testFailingBackup()
@@ -84,9 +84,9 @@ class BackupCommandTest extends TestCase
                ->andReturn(true);
 
         AWS::shouldReceive('get')
-           ->once()
-           ->with('s3')
-           ->andReturn($s3Mock);
+               ->once()
+               ->with('s3')
+               ->andReturn($s3Mock);
 
         $this->databaseMock->shouldReceive('getFileExtension')
                            ->once()
@@ -100,7 +100,7 @@ class BackupCommandTest extends TestCase
             '--upload-s3' => 'bucket-title'
             ));
 
-        // $this->assertRegExp("/^(\\033\[[0-9;]*m)*(\\n)*Database backup was successful. [0-9]{14}.sql was saved in the dumps folder.(\\n)*(\\033\[0m)*(\\033\[[0-9;]*m)*(\\n)*Upload complete.(\\n)*(\\033\[0m)*$/", $this->tester->getDisplay());
+        // $this->assertRegExp("/^(\\033\[[0-9;]*m)*(\\n)*Database backup was successful. [A-Za-z0-9_]{10,}.sql was saved in the dumps folder.(\\n)*(\\033\[0m)*(\\033\[[0-9;]*m)*(\\n)*Upload complete.(\\n)*(\\033\[0m)*$/", $this->tester->getDisplay());
 
     }
 

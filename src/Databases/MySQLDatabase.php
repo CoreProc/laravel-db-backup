@@ -25,8 +25,7 @@ class MySQLDatabase implements DatabaseInterface
 
 	public function dump($destinationFile)
 	{
-		$command = sprintf('%smysqldump --user=%s --password=%s --host=%s --port=%s %s > %s',
-			$this->getDumpCommandPath(),
+		$command = sprintf('mysqldump --user=%s --password=%s --host=%s --port=%s %s > %s',
 			escapeshellarg($this->user),
 			escapeshellarg($this->password),
 			escapeshellarg($this->host),
@@ -40,8 +39,7 @@ class MySQLDatabase implements DatabaseInterface
 
 	public function restore($sourceFile)
 	{
-		$command = sprintf('%smysql --user=%s --password=%s --host=%s --port=%s %s < %s',
-			$this->getRestoreCommandPath(),
+		$command = sprintf('mysql --user=%s --password=%s --host=%s --port=%s %s < %s',
 			escapeshellarg($this->user),
 			escapeshellarg($this->password),
 			escapeshellarg($this->host),
@@ -56,16 +54,6 @@ class MySQLDatabase implements DatabaseInterface
 	public function getFileExtension()
 	{
 		return 'sql';
-	}
-
-	protected function getDumpCommandPath()
-	{
-		return Config::get('backup::mysql.dump_command_path');;
-	}
-
-	protected function getRestoreCommandPath()
-	{
-		return Config::get('backup::mysql.restore_command_path');;
 	}
 
 }
