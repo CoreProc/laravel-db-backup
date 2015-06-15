@@ -18,10 +18,10 @@ class BaseCommand extends Command
         $this->colors          = new ConsoleColors();
     }
 
-    public function getDatabase($database)
+    public function getDatabase($databaseDriver)
     {
-        $database   = $database ?: Config::get('database.default');
-        $realConfig = Config::get('database.connections.' . $database);
+        //$database   = $database ?: Config::get('database.default');
+        $realConfig = Config::get('database.connections.' . $databaseDriver);
 
         return $this->databaseBuilder->getDatabase($realConfig);
     }

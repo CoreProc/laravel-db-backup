@@ -3,6 +3,7 @@
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Finder\Finder;
+use Config;
 
 class RestoreCommand extends BaseCommand
 {
@@ -13,8 +14,15 @@ class RestoreCommand extends BaseCommand
 	protected $database;
 
 	public function fire()
-	{		
-		$this->database = $this->getDatabase($this->input->getOption('database'));
+	{
+        //get default db driver from config unless we provide other db driver from cli command
+        $this->database = $this->getDatabase(Config::get('database.default'));
+
+        $databaseOption = $this->input->getOption('database');
+
+        if ( ! empty($databaseOption)) {
+            $this->database = $this->getDatabase($databaseOption);
+        }
 
 		$fileName = $this->argument('dump');
 		

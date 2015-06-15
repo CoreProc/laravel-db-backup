@@ -16,15 +16,15 @@ class BackupCommand extends BaseCommand
 
     public function fire()
     {
-        $databaseName = Config::get('database.default', false);
+        $databaseDriver = Config::get('database.default', false);
 
 	    $databaseOption = $this->input->getOption('database');
 
         if ( ! empty($databaseOption)) {
-            $databaseName = $this->input->getOption('database');
+            $databaseDriver = $this->input->getOption('database');
         }
 
-        $database = $this->getDatabase($databaseName);
+        $database = $this->getDatabase($databaseDriver);
 
         $this->checkDumpFolder();
 
@@ -39,7 +39,11 @@ class BackupCommand extends BaseCommand
                 $this->fileName = basename($this->filePath) . '_' . time();
             }
         } else {
-            $this->fileName = $this->input->getOption('database') . '_' . time() . '.' . $database->getFileExtension();
+            if ( ! empty($databaseOption)) {
+                $this->fileName = $this->input->getOption('database') . '_' . time() . '.' . $database->getFileExtension();
+            } else {
+                $this->fileName = Config::get('database.connections.' . $databaseDriver .'.database') . '_' . time() . '.' . $database->getFileExtension();
+            }
             $this->filePath = rtrim($this->getDumpsPath(), '/') . '/' . $this->fileName;
         }
 
