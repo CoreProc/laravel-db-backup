@@ -90,9 +90,8 @@ class BackupCommand extends BaseCommand
                 }
             }
 
-            if ( ! empty($dbConnectionConfig['slackToken']) && ! empty($dbConnectionConfig['slackSubDomain'])) {
+            if ( ! empty($dbConnectionConfig['slackWebhookPath'])) {
                 $disableSlackOption = $this->option('disable-slack');
-                $disableSlack = ! empty($disableSlackOption);
                 if ( ! $disableSlackOption) $this->notifySlack($dbConnectionConfig);
             }
 
@@ -215,13 +214,13 @@ class BackupCommand extends BaseCommand
     private function notifySlack($databaseConfig)
     {
         $this->info('Sending slack notification..');
-        $data['text'] = "A backup of the {$databaseConfig['database']} at {$databaseConfig['host']} has been created.";
+        $data['text'] = "A backup of the {$databaseConfig['database']} database at {$databaseConfig['host']} has been created.";
         $data['username'] = "Database Backup";
         $data['icon_url'] = "https://s3-ap-northeast-1.amazonaws.com/coreproc/images/icon_database.png";
 
         $content = json_encode($data);
 
-        $command = "curl -X POST --data-urlencode 'payload={$content}' 'https://{$databaseConfig['slackSubDomain']}.slack.com/services/hooks/incoming-webhook?token={$databaseConfig['slackToken']}'";
+        $command = "curl -X POST --data-urlencode 'payload={$content}' https://hooks.slack.com/services/{$databaseConfig['slackWebhookPath']}";
 
         shell_exec($command);
         $this->info('Slack notification sent!');
