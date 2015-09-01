@@ -18,32 +18,31 @@ class BackupCommand extends BaseCommand
     {
         $databaseDriver = Config::get('database.default', false);
 
-	    $databaseOption = $this->input->getOption('database');
+        $databaseOption = $this->option('database');
 
         if ( ! empty($databaseOption)) {
-            $databaseDriver = $this->input->getOption('database');
+            $databaseDriver = $databaseOption;
         }
 
         $database = $this->getDatabase($databaseDriver);
+        $dbConnectionConfig = Config::get('database.connections.' . $databaseDriver);
 
         $this->checkDumpFolder();
 
-        if ($this->argument('filename')) {
+        $customFilename = $this->argument('filename');
+
+        if ($customFilename) {
             // Is it an absolute path?
-            if (substr($this->argument('filename'), 0, 1) == '/') {
-                $this->filePath = $this->argument('filename');
+            if (substr($customFilename, 0, 1) == '/') {
+                $this->filePath = $customFilename;
                 $this->fileName = basename($this->filePath);
             } // It's relative path?
             else {
-                $this->filePath = getcwd() . '/' . $this->argument('filename');
+                $this->filePath = getcwd() . '/' . $customFilename;
                 $this->fileName = basename($this->filePath) . '_' . time();
             }
         } else {
-            if ( ! empty($databaseOption)) {
-                $this->fileName = $this->input->getOption('database') . '_' . time() . '.' . $database->getFileExtension();
-            } else {
-                $this->fileName = Config::get('database.connections.' . $databaseDriver .'.database') . '_' . time() . '.' . $database->getFileExtension();
-            }
+            $this->fileName = $dbConnectionConfig['database'] . '_' . time() . '.' . $database->getFileExtension();
             $this->filePath = rtrim($this->getDumpsPath(), '/') . '/' . $this->fileName;
         }
 
@@ -54,7 +53,7 @@ class BackupCommand extends BaseCommand
             // create zip archive
             if ($this->option('archive')) {
                 $zip = new \ZipArchive();
-                $zipFileName = $this->input->getOption('database') . '_' . time() . '.zip';
+                $zipFileName = $dbConnectionConfig['database'] . '_' . time() . '.zip';
                 $zipFilePath = dirname($this->filePath) . '/' . $zipFileName;
 
                 if ($zip->open($zipFilePath, \ZipArchive::CREATE) === true) {
@@ -71,7 +70,7 @@ class BackupCommand extends BaseCommand
             }
 
             // display success message
-            if ($this->argument('filename')) {
+            if ($customFilename) {
                 $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. Saved to %s' . "\n", 'green'), $this->filePath));
             } else {
                 $this->line(sprintf($this->colors->getColoredString("\n" . 'Database backup was successful. %s was saved in the dumps folder.' . "\n", 'green'), $this->fileName));
@@ -91,11 +90,10 @@ class BackupCommand extends BaseCommand
                 }
             }
 
-            $databaseConnectionConfig = Config::get('database.connections.' . $this->input->getOption('database'));
-            if ( ! empty($databaseConnectionConfig['slackToken']) && ! empty($databaseConnectionConfig['slackSubDomain'])) {
-	            $disableSlackOption = $this->option('disable-slack');
+            if ( ! empty($dbConnectionConfig['slackToken']) && ! empty($dbConnectionConfig['slackSubDomain'])) {
+                $disableSlackOption = $this->option('disable-slack');
                 $disableSlack = ! empty($disableSlackOption);
-                if ( ! $this->option('disable-slack')) $this->notifySlack($databaseConnectionConfig);
+                if ( ! $disableSlackOption) $this->notifySlack($dbConnectionConfig);
             }
 
         } else {
@@ -152,8 +150,8 @@ class BackupCommand extends BaseCommand
 
     protected function getS3DumpsPath()
     {
-        if ($this->input->getOption('path-s3')) {
-            $path = $this->input->getOption('path-s3');
+        if ($this->option('path-s3')) {
+            $path = $this->option('path-s3');
         } else {
             $path = Config::get('laravel-db-backup::s3.path', 'databases');
         }
@@ -167,7 +165,7 @@ class BackupCommand extends BaseCommand
             return;
         }
 
-        $dataRetention = (int) $this->input->getOption('data-retention-s3');
+        $dataRetention = (int) $this->option('data-retention-s3');
 
         if ($dataRetention <= 0) {
             $this->error("Data retention should be a number");
