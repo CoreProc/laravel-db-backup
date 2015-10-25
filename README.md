@@ -54,21 +54,19 @@ If you want to use another database, just add another configuration to the `conn
             'charset'        => 'utf8',
             'collation'      => 'utf8_unicode_ci',
             'prefix'         => '',
-            'slackSubDomain' => 'slacksubdomain',
-            'slackToken'     => 'xxxxx'
+            'slackWebhookPath'  => 'T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
         ),
         
         'dbconnection2'  => array(
-            'driver'         => 'mysql',
-            'host'           => 'localhost',
-            'database'       => 'db1',
-            'username'       => 'user',
-            'password'       => 'password',
-            'charset'        => 'utf8',
-            'collation'      => 'utf8_unicode_ci',
-            'prefix'         => '',
-            'slackSubDomain' => 'slacksubdomain',
-            'slackToken'     => 'xxxxx'
+            'driver'            => 'mysql',
+            'host'              => 'localhost',
+            'database'          => 'db1',
+            'username'          => 'user',
+            'password'          => 'password',
+            'charset'           => 'utf8',
+            'collation'         => 'utf8_unicode_ci',
+            'prefix'            => '',
+            'slackWebhookPath'  => 'T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
         ),
 
     ),
@@ -79,11 +77,11 @@ So if you want to back up, let's say, dbconnection2, you would add the `--databa
 
 ### Slack Integration
 
-[Slack](https://slack.com) is a platform/service for team communication.
+[Slack](https://slack.com) is a platform/service for team communication. Using the [Incoming Webhooks](https://api.slack.com/incoming-webhooks) integration you can send real-time messages to any channel on your team's Slack.
 
-If you'll notice, we have added two extra variables to the database configuration (`slackSubDomain` and `slackToken`). These two variables allows you to integrate your Slack account so you will receive notifications when these variables are filled in.
+If you'll notice, we have added an extra variable to the database configuration (`slackWebhookPath`). To begin receiving your database backup notifications you first have to add the [Incoming Webhooks integration](https://my.slack.com/services/new/incoming-webhook/) for your Slack team. Once set up you will be given a unique `Webhook URL` which will look something like this: *`https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX`*. Just copy your unique webhook path (`T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX`) and add it to your database configuration.
 
-To disable the Slack integrations, either leave the values blank or you can disable Slack notifications manually by using the `--disable-slack` option. Here is an example:
+To disable the Slack integrations, either leave the value blank or you can disable Slack notifications manually by using the `--disable-slack` option. Here is an example:
 
 ``php artisan db:backup --database=dbconnection2 --disable-slack`
 
