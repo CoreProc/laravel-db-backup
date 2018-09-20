@@ -83,7 +83,7 @@ If you'll notice, we have added an extra variable to the database configuration 
 
 To disable the Slack integrations, either leave the value blank or you can disable Slack notifications manually by using the `--disable-slack` option. Here is an example:
 
-``php artisan db:backup --database=dbconnection2 --disable-slack`
+`php artisan db:backup --database=dbconnection2 --disable-slack`
 
 ### Upload to Amazon S3
 
